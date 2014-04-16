@@ -560,10 +560,10 @@ int test_basic(const char *fname1, const char *fname2, const char *fname3)
         int          data4[3][2] = {{0,0},{0,0},{0,0}};
         int          data5[2][2] = {{0,0},{0,0}};
         unsigned int data6[3][2] = {{0,0},{0,0},{0,0}};
-        cmp1_t       data7[1] = {1,2};
-        cmp2_t       data8[1] = {1,2};
-        hsize_t      dims3[2] = { 2,2 };
-        hsize_t      dims4[1] = { 1 };
+        cmp1_t       data7[1] = {{1.0f, 2}};
+        cmp2_t       data8[1] = {{1, 2.0f}};
+        hsize_t      dims3[2] = {2, 2};
+        hsize_t      dims4[1] = {1};
         size_t       type_size;
         hid_t        tid;
 
@@ -759,6 +759,7 @@ int test_datatypes(const char *fname)
 {
 
     hid_t   fid1;
+    hid_t   dset;
     hsize_t dims[2]={3,2};
     herr_t  status;
     char    buf1a[3][2] = {{1,1},{1,1},{1,1}};
@@ -789,6 +790,9 @@ int test_datatypes(const char *fname)
 
     unsigned int    buf10a[3][2] = {{UIMAX,1},{1,1},{1,1}};
     unsigned int    buf10b[3][2] = {{UIMAX-1,1},{3,4},{5,6}};
+
+    unsigned short     buf11a[3][2] = {{204,205},{2,3},{1,1}};
+    unsigned int     buf11b[3][2] = {{204,205},{2,3},{1,1}};
 
 
     /*-------------------------------------------------------------------------
@@ -880,6 +884,19 @@ int test_datatypes(const char *fname)
     write_dset(fid1,2,dims,"dset10a",H5T_NATIVE_UINT,buf10a);
     write_dset(fid1,2,dims,"dset10b",H5T_NATIVE_UINT,buf10b);
 
+    /*-------------------------------------------------------------------------
+    * Same type class, different size
+    *-------------------------------------------------------------------------
+    */
+    write_dset(fid1,2,dims,"dset11a",H5T_STD_U16LE,buf11a);
+    dset=H5Dopen2 (fid1, "dset11a", H5P_DEFAULT);
+    write_attr(dset,2,dims,"attr",H5T_STD_U16LE,buf11a);
+    H5Dclose (dset);
+
+    write_dset(fid1,2,dims,"dset11b",H5T_STD_U32LE,buf11b);
+    dset=H5Dopen2 (fid1, "dset11b", H5P_DEFAULT);
+    write_attr(dset,2,dims,"attr",H5T_STD_U32LE,buf11b);
+    H5Dclose (dset);
 
     /*-------------------------------------------------------------------------
     * Close
@@ -2181,6 +2198,14 @@ static int test_dangle_links(const char *fname1, const char *fname2)
         goto out;
     }
 
+    status = H5Lcreate_soft("no_obj1", fid1, "soft_link4", H5P_DEFAULT, H5P_DEFAULT);
+    if (status < 0)
+    {
+        fprintf(stderr, "Error: %s> H5Lcreate_soft failed.\n", fname1);
+        status = FAIL;
+        goto out;
+    }
+
     /* file 2 */
     status = H5Lcreate_soft("no_obj", fid2, "soft_link1", H5P_DEFAULT, H5P_DEFAULT);
     if (status < 0)
@@ -2199,6 +2224,14 @@ static int test_dangle_links(const char *fname1, const char *fname2)
     }
 
     status = H5Lcreate_soft("/dset2", fid2, "soft_link3", H5P_DEFAULT, H5P_DEFAULT);
+    if (status < 0)
+    {
+        fprintf(stderr, "Error: %s> H5Lcreate_soft failed.\n", fname2);
+        status = FAIL;
+        goto out;
+    }
+
+    status = H5Lcreate_soft("no_obj2", fid2, "soft_link4", H5P_DEFAULT, H5P_DEFAULT);
     if (status < 0)
     {
         fprintf(stderr, "Error: %s> H5Lcreate_soft failed.\n", fname2);
@@ -2234,7 +2267,7 @@ static int test_dangle_links(const char *fname1, const char *fname2)
         goto out;
     }
 
-    status = H5Lcreate_external("no_file1.h5", "no_obj", fid1, "ext_link4", H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Lcreate_external("no_file.h5", "no_obj", fid1, "ext_link4", H5P_DEFAULT, H5P_DEFAULT);
     if (status < 0)
     {
         fprintf(stderr, "Error: %s> H5Lcreate_external failed.\n", fname1);
@@ -2267,7 +2300,7 @@ static int test_dangle_links(const char *fname1, const char *fname2)
         goto out;
     }
 
-    status = H5Lcreate_external("no_file2.h5", "no_obj", fid2, "ext_link4", H5P_DEFAULT, H5P_DEFAULT);
+    status = H5Lcreate_external("no_file.h5", "no_obj", fid2, "ext_link4", H5P_DEFAULT, H5P_DEFAULT);
     if (status < 0)
     {
         fprintf(stderr, "Error: %s> H5Lcreate_external failed.\n", fname2);
@@ -3631,9 +3664,6 @@ static int test_comp_vlen_strings(const char *fname1, const char *grp_name, int 
         };
     hsize_t dims_fixlen_str_array[]  = {FIXLEN_STR_ARRY_DIM};
 
-    /* objref */
-    hsize_t    objref_dims[1]={1};
-
     /*------------------------------------------
      * compound dataset
      *------------------------------------------*/
@@ -4228,15 +4258,39 @@ test_enums(const char *fname)
     tid = H5Tenum_create(H5T_NATIVE_INT);
     enum_val = 0;
     status = H5Tenum_insert(tid, "YIN", &enum_val);
+    if (status < 0)
+    {
+        fprintf(stderr, "Error: %s> H5Tenum_insert failed.\n", fname);
+        status = FAIL;
+        goto out;
+    }
     enum_val = 1;
     status = H5Tenum_insert(tid, "YANG", &enum_val);
+    if (status < 0)
+    {
+        fprintf(stderr, "Error: %s> H5Tenum_insert failed.\n", fname);
+        status = FAIL;
+        goto out;
+    }
 
     /*-----------------------------------------------------------------------
      * Create datasets containing enum data.
      *---------------------------------------------------------------------*/
 
     status = write_dset(fid, 1, &dims, "dset1", tid, data1);
+    if (status < 0)
+    {
+        fprintf(stderr, "Error: %s> write_dset failed.\n", fname);
+        status = FAIL;
+        goto out;
+    }
     status = write_dset(fid, 1, &dims, "dset2", tid, data2);
+    if (status < 0)
+    {
+        fprintf(stderr, "Error: %s> write_dset failed.\n", fname);
+        status = FAIL;
+        goto out;
+    }
 
 out:
     /*-----------------------------------------------------------------------
@@ -4365,6 +4419,7 @@ static void test_comps_array (const char *fname, const char *dset, const char *a
      * Create an attribute in root group
      */
     tid_attr = H5Acreate2(fid, attr, tid_cmpd1, sid_dset, H5P_DEFAULT, H5P_DEFAULT);
+    assert(tid_attr > 0);
     ret = H5Awrite(tid_attr, tid_cmpd1, wdata);
     assert(ret >= 0);
 
@@ -4407,6 +4462,7 @@ static void test_comps_vlen (const char * fname, const char *dset, const char *a
     hid_t  fid;  /* HDF5 File ID */
     hid_t  did_dset; /* dataset ID   */
     hid_t  sid_dset;  /* dataset space ID */
+    hid_t  tid_attr;
     hid_t  tid_cmpd2; /* compound2 type ID */
     hid_t  tid_cmpd1; /* compound1 type ID */
     hid_t  tid_cmpd1_vlen;
@@ -4471,22 +4527,22 @@ static void test_comps_vlen (const char * fname, const char *dset, const char *a
     ret = H5Dwrite(did_dset, tid_cmpd1, H5S_ALL, H5S_ALL, H5P_DEFAULT, wdata);
     assert(ret >= 0);
 
+    /*-----------------------------------
+     * Create an attribute in root group
+     */
+    tid_attr = H5Acreate2(fid, attr, tid_cmpd1, sid_dset, H5P_DEFAULT, H5P_DEFAULT);
+    assert(tid_attr > 0);
+    ret = H5Awrite(tid_attr, tid_cmpd1, wdata);
+    assert(ret >= 0);
+
     /* Reclaim the write VL data */
     ret = H5Dvlen_reclaim(tid_cmpd1, sid_dset, H5P_DEFAULT, wdata);
     assert(ret >= 0);
 
-    /*-----------------------------------
-     * Create an attribute in root group
-     */
-    /* TODO: creating vlen with compound type doesn't work for attribute now. 
-     * so add this later when it's fixed 
-    tid_attr = H5Acreate2(fid, attr, tid_cmpd1, sid_dset, H5P_DEFAULT, H5P_DEFAULT);
-    ret = H5Awrite(tid_attr, tid_cmpd1, wdata);
-    assert(ret >= 0);
-    */
-
     /* ----------------
      * Close IDs */
+    ret = H5Aclose(tid_attr);
+    assert(ret >= 0);
     ret = H5Dclose(did_dset);
     assert(ret >= 0);
     ret = H5Tclose(tid_cmpd2);
@@ -4523,6 +4579,7 @@ static void test_comps_array_vlen (const char * fname, const char *dset,const ch
     hid_t  fid;  /* HDF5 File IDs  */
     hid_t  did_dset; /* Dataset ID   */
     hid_t  sid_dset;       /* Dataspace ID   */
+    hid_t  tid_attr;
     hid_t  tid_cmpd1;       /* Compound1 Datatype ID   */
     hid_t  tid_arry1;       /* Array Datatype ID   */
     hid_t  tid_cmpd2;       /* Compound2 Datatype ID   */
@@ -4610,22 +4667,22 @@ static void test_comps_array_vlen (const char * fname, const char *dset,const ch
     ret = H5Dwrite(did_dset, tid_cmpd1, H5S_ALL, H5S_ALL, H5P_DEFAULT, wdata);
     assert(ret >= 0);
 
+    /*-----------------------------------
+     * Create an attribute in root group
+     */
+    tid_attr = H5Acreate2(fid, attr, tid_cmpd1, sid_dset, H5P_DEFAULT, H5P_DEFAULT);
+    assert(tid_attr > 0);
+    ret = H5Awrite(tid_attr, tid_cmpd1, wdata);
+    assert(ret >= 0);
+
     /* Reclaim the write VL data */
     ret = H5Dvlen_reclaim(tid_cmpd1, sid_dset, H5P_DEFAULT, wdata);
     assert(ret >= 0);
 
-    /*-----------------------------------
-     * Create an attribute in root group
-     */
-    /* TODO: creating vlen with compound type doesn't work for attribute now. 
-     * so add this later when it's fixed
-    tid_attr = H5Acreate2(fid, attr, tid_cmpd1, sid_dset, H5P_DEFAULT, H5P_DEFAULT);
-    ret = H5Awrite(tid_attr, tid_cmpd1, wdata);
-    assert(ret >= 0);
-    */
-
     /*-------------------
      * Close IDs */
+    ret = H5Aclose(tid_attr);
+    assert(ret >= 0);
     ret = H5Tclose(tid_arry1);
     assert(ret >= 0);
     ret = H5Dclose(did_dset);
@@ -4670,6 +4727,7 @@ static void test_comps_vlen_arry (const char * fname, const char *dset, const ch
     hid_t  fid;  /* HDF5 File ID */
     hid_t  did_dset; /* dataset ID   */
     hid_t  sid_dset;  /* dataset space ID */
+    hid_t  tid_attr;
     hid_t  tid_cmpd3; /* compound3 type ID */
     hid_t  tid_cmpd2; /* compound2 type ID */
     hid_t  tid_cmpd2_arry;
@@ -4755,22 +4813,22 @@ static void test_comps_vlen_arry (const char * fname, const char *dset, const ch
     ret = H5Dwrite(did_dset, tid_cmpd1, H5S_ALL, H5S_ALL, H5P_DEFAULT, wdata);
     assert(ret >= 0);
 
+    /*-----------------------------------
+     * Create an attribute in root group
+     */
+    tid_attr = H5Acreate2(fid, attr, tid_cmpd1, sid_dset, H5P_DEFAULT, H5P_DEFAULT);
+    assert(tid_attr > 0);
+    ret = H5Awrite(tid_attr, tid_cmpd1, wdata);
+    assert(ret >= 0);
+
     /* Reclaim the write VL data */
     ret = H5Dvlen_reclaim(tid_cmpd1, sid_dset, H5P_DEFAULT, wdata);
     assert(ret >= 0);
 
-    /*-----------------------------------
-     * Create an attribute in root group
-     */
-    /* TODO: creating vlen with compound type doesn't work for attribute now.
-     * so add this later when it's fixed
-    tid_attr = H5Acreate2(fid, attr, tid_cmpd1, sid_dset, H5P_DEFAULT, H5P_DEFAULT);
-    ret = H5Awrite(tid_attr, tid_cmpd1, wdata);
-    assert(ret >= 0);
-    */
-
     /* ----------------
      * Close IDs */
+    ret = H5Aclose(tid_attr);
+    assert(ret >= 0);
     ret = H5Dclose(did_dset);
     assert(ret >= 0);
     ret = H5Sclose(sid_dset);

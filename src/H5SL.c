@@ -745,7 +745,7 @@ done:
  EXAMPLES
  REVISION LOG
 --------------------------------------------------------------------------*/
-herr_t
+static herr_t
 H5SL_release_common(H5SL_t *slist, H5SL_operator_t op, void *op_data)
 {
     H5SL_node_t *node, *next_node;      /* Pointers to skip list nodes */
@@ -754,7 +754,7 @@ H5SL_release_common(H5SL_t *slist, H5SL_operator_t op, void *op_data)
     FUNC_ENTER_NOAPI_NOINIT
 
     /* Check args */
-    assert(slist);
+    HDassert(slist);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -817,7 +817,7 @@ done:
  EXAMPLES
  REVISION LOG
 --------------------------------------------------------------------------*/
-herr_t
+static herr_t
 H5SL_close_common(H5SL_t *slist, H5SL_operator_t op, void *op_data)
 {
     herr_t ret_value = SUCCEED;
@@ -873,7 +873,7 @@ H5SL_create(H5SL_type_t type, H5SL_cmp_t cmp)
     FUNC_ENTER_NOAPI(NULL)
 
     /* Check args */
-    HDassert(type>=H5SL_TYPE_INT && type<=H5SL_TYPE_GENERIC);
+    HDassert(type >= H5SL_TYPE_INT && type <= H5SL_TYPE_GENERIC);
 
     /* Allocate skip list structure */
     if(NULL == (new_slist = H5FL_MALLOC(H5SL_t)))
@@ -889,7 +889,7 @@ H5SL_create(H5SL_type_t type, H5SL_cmp_t cmp)
     new_slist->nobjs = 0;
 
     /* Allocate the header node */
-    if(NULL == (header = H5SL_new_node(NULL, NULL, ULONG_MAX)))
+    if(NULL == (header = H5SL_new_node(NULL, NULL, (uint32_t)ULONG_MAX)))
         HGOTO_ERROR(H5E_SLIST ,H5E_NOSPACE, NULL, "can't create new skip list node")
 
     /* Initialize header node's forward pointer */
@@ -940,7 +940,7 @@ H5SL_count(H5SL_t *slist)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist);
+    HDassert(slist);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -978,8 +978,8 @@ H5SL_insert(H5SL_t *slist, void *item, const void *key)
     FUNC_ENTER_NOAPI_NOINIT
 
     /* Check args */
-    assert(slist);
-    assert(key);
+    HDassert(slist);
+    HDassert(key);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -1025,8 +1025,8 @@ H5SL_add(H5SL_t *slist, void *item, const void *key)
     FUNC_ENTER_NOAPI_NOINIT
 
     /* Check args */
-    assert(slist);
-    assert(key);
+    HDassert(slist);
+    HDassert(key);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -1252,8 +1252,8 @@ H5SL_search(H5SL_t *slist, const void *key)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist);
-    assert(key);
+    HDassert(slist);
+    HDassert(key);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -1341,8 +1341,8 @@ H5SL_less(H5SL_t *slist, const void *key)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist);
-    assert(key);
+    HDassert(slist);
+    HDassert(key);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -1535,8 +1535,8 @@ H5SL_find(H5SL_t *slist, const void *key)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist);
-    assert(key);
+    HDassert(slist);
+    HDassert(key);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -1668,6 +1668,9 @@ H5SL_below(H5SL_t *slist, const void *key)
         case H5SL_TYPE_GENERIC:
             H5SL_FIND(GENERIC, slist, x, const void, key, -)
             break;
+
+        default:
+            HDassert(0 && "Unknown skiplist type!");
     } /* end switch */
 
     /* An exact match for 'key' must not have been found in list, if we get here */
@@ -1767,6 +1770,9 @@ H5SL_above(H5SL_t *slist, const void *key)
         case H5SL_TYPE_GENERIC:
             H5SL_FIND(GENERIC, slist, x, const void, key, -)
             break;
+
+        default:
+            HDassert(0 && "Unknown skiplist type!");
     } /* end switch */
 
     /* An exact match for 'key' must not have been found in list, if we get here */
@@ -1806,7 +1812,7 @@ H5SL_first(H5SL_t *slist)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist);
+    HDassert(slist);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -1840,7 +1846,7 @@ H5SL_next(H5SL_node_t *slist_node)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist_node);
+    HDassert(slist_node);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -1874,7 +1880,7 @@ H5SL_prev(H5SL_node_t *slist_node)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist_node);
+    HDassert(slist_node);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -1909,7 +1915,7 @@ H5SL_last(H5SL_t *slist)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist);
+    HDassert(slist);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -1943,7 +1949,7 @@ H5SL_item(H5SL_node_t *slist_node)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist_node);
+    HDassert(slist_node);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -2040,7 +2046,7 @@ H5SL_release(H5SL_t *slist)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist);
+    HDassert(slist);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -2086,7 +2092,7 @@ H5SL_free(H5SL_t *slist, H5SL_operator_t op, void *op_data)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist);
+    HDassert(slist);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -2132,7 +2138,7 @@ H5SL_destroy(H5SL_t *slist, H5SL_operator_t op, void *op_data)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist);
+    HDassert(slist);
 
     /* Check internal consistency */
     /* (Pre-condition) */
@@ -2169,7 +2175,7 @@ H5SL_close(H5SL_t *slist)
     FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Check args */
-    assert(slist);
+    HDassert(slist);
 
     /* Check internal consistency */
     /* (Pre-condition) */

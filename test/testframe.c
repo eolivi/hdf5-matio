@@ -26,7 +26,7 @@
 /*
  * Definitions for the testing structure.
  */
-#define MAXNUMOFTESTS   50
+#define MAXNUMOFTESTS   60
 #define MAXTESTNAME     16
 #define MAXTESTDESC     64
 
@@ -75,7 +75,7 @@ AddTest(const char *TheName, void (*TheCall) (void), void (*Cleanup) (void), con
 {
     /* Sanity checking */
     if (Index >= MAXNUMOFTESTS) {
-        printf("Too many tests added, increase MAXNUMOFTEST(%d).\n",
+        printf("Too many tests added, increase MAXNUMOFTESTS(%d).\n",
 		MAXNUMOFTESTS);
         exit(-1);
     }                           /* end if */
@@ -126,12 +126,6 @@ AddTest(const char *TheName, void (*TheCall) (void), void (*Cleanup) (void), con
  */
 void TestInit(const char *ProgName, void (*private_usage)(void), int (*private_parser)(int ac, char *av[]))
 {
-#if !(defined MAC || defined SYMANTEC_C)
-    /* Un-buffer the stdout and stderr */
-    setbuf(stderr, NULL);
-    setbuf(stdout, NULL);
-#endif
-
     /* Save error printing settings */
     H5Eget_auto2(H5E_DEFAULT, PrintErrorStackFunc, PrintErrorStackData);
     /*
@@ -165,8 +159,8 @@ void TestUsage(void)
 
 	print_func("Usage: %s [-v[erbose] (l[ow]|m[edium]|h[igh]|0-9)] %s\n",
 	    TestProgName, (TestPrivateUsage ? "<extra options>" : ""));
-	print_func("              [-[e]x[clude] name+] \n");
-	print_func("              [-o[nly] name+] \n");
+	print_func("              [-[e]x[clude] name]+ \n");
+	print_func("              [-o[nly] name]+ \n");
 	print_func("              [-b[egin] name] \n");
 	print_func("              [-s[ummary]]  \n");
 	print_func("              [-c[leanoff]]  \n");

@@ -259,6 +259,7 @@ H5AC_init_interface(void)
     H5P_genclass_t  *xfer_pclass;   /* Dataset transfer property list class object */
     H5P_genplist_t  *xfer_plist;    /* Dataset transfer property list object */
     unsigned block_before_meta_write; /* "block before meta write" property value */
+    unsigned coll_meta_write;       /* "collective metadata write" property value */
     unsigned library_internal=1;    /* "library internal" property value */
     H5FD_mpio_xfer_t xfer_mode;     /* I/O transfer mode property value */
     herr_t ret_value=SUCCEED;           /* Return value */
@@ -271,6 +272,7 @@ H5AC_init_interface(void)
     /* Get the dataset transfer property list class object */
     if (NULL == (xfer_pclass = H5I_object(H5P_CLS_DATASET_XFER_g)))
         HGOTO_ERROR(H5E_CACHE, H5E_BADATOM, FAIL, "can't get property list class")
+
 
     /* Get an ID for the blocking, collective H5AC dxpl */
     if ((H5AC_dxpl_id=H5P_create_id(xfer_pclass,FALSE)) < 0)
@@ -289,10 +291,12 @@ H5AC_init_interface(void)
     if(H5P_insert(xfer_plist,H5AC_LIBRARY_INTERNAL_NAME,H5AC_LIBRARY_INTERNAL_SIZE,&library_internal,NULL,NULL,NULL,NULL,NULL,NULL)<0)
         HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "can't insert metadata cache dxpl property")
 
-    /* Set the transfer mode */
-    xfer_mode=H5FD_MPIO_COLLECTIVE;
-    if (H5P_set(xfer_plist,H5D_XFER_IO_XFER_MODE_NAME,&xfer_mode)<0)
-        HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "unable to set value")
+    /* Insert 'collective metadata write' property */
+    coll_meta_write = 1;
+    if(H5P_insert(xfer_plist, H5AC_COLLECTIVE_META_WRITE_NAME, H5AC_COLLECTIVE_META_WRITE_SIZE, &coll_meta_write,
+                  NULL, NULL, NULL, NULL, NULL, NULL) < 0)
+        HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "can't insert metadata cache dxpl property")
+
 
     /* Get an ID for the non-blocking, collective H5AC dxpl */
     if ((H5AC_noblock_dxpl_id=H5P_create_id(xfer_pclass,FALSE)) < 0)
@@ -311,10 +315,12 @@ H5AC_init_interface(void)
     if(H5P_insert(xfer_plist,H5AC_LIBRARY_INTERNAL_NAME,H5AC_LIBRARY_INTERNAL_SIZE,&library_internal,NULL,NULL,NULL,NULL,NULL,NULL)<0)
         HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "can't insert metadata cache dxpl property")
 
-    /* Set the transfer mode */
-    xfer_mode=H5FD_MPIO_COLLECTIVE;
-    if (H5P_set(xfer_plist,H5D_XFER_IO_XFER_MODE_NAME,&xfer_mode)<0)
-        HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "unable to set value")
+    /* Insert 'collective metadata write' property */
+    coll_meta_write = 1;
+    if(H5P_insert(xfer_plist, H5AC_COLLECTIVE_META_WRITE_NAME, H5AC_COLLECTIVE_META_WRITE_SIZE, &coll_meta_write,
+                  NULL, NULL, NULL, NULL, NULL, NULL) < 0)
+        HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "can't insert metadata cache dxpl property")
+
 
     /* Get an ID for the non-blocking, independent H5AC dxpl */
     if ((H5AC_ind_dxpl_id=H5P_create_id(xfer_pclass,FALSE)) < 0)
@@ -333,23 +339,24 @@ H5AC_init_interface(void)
     if(H5P_insert(xfer_plist,H5AC_LIBRARY_INTERNAL_NAME,H5AC_LIBRARY_INTERNAL_SIZE,&library_internal,NULL,NULL,NULL,NULL,NULL,NULL)<0)
         HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "can't insert metadata cache dxpl property")
 
-    /* Set the transfer mode */
-    xfer_mode=H5FD_MPIO_INDEPENDENT;
-    if (H5P_set(xfer_plist,H5D_XFER_IO_XFER_MODE_NAME,&xfer_mode)<0)
-        HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "unable to set value")
+    /* Insert 'collective metadata write' property */
+    coll_meta_write = 0;
+    if(H5P_insert(xfer_plist, H5AC_COLLECTIVE_META_WRITE_NAME, H5AC_COLLECTIVE_META_WRITE_SIZE, &coll_meta_write,
+                  NULL, NULL, NULL, NULL, NULL, NULL) < 0)
+        HGOTO_ERROR(H5E_PLIST, H5E_CANTSET, FAIL, "can't insert metadata cache dxpl property")
 
 done:
     FUNC_LEAVE_NOAPI(ret_value)
 
 #else /* H5_HAVE_PARALLEL */
-    FUNC_ENTER_NOAPI_NOINIT
+    FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     /* Sanity check */
-    assert(H5P_LST_DATASET_XFER_g!=(-1));
+    HDassert(H5P_LST_DATASET_XFER_g!=(-1));
 
-    H5AC_dxpl_id=H5P_DATASET_XFER_DEFAULT;
-    H5AC_noblock_dxpl_id=H5P_DATASET_XFER_DEFAULT;
-    H5AC_ind_dxpl_id=H5P_DATASET_XFER_DEFAULT;
+    H5AC_dxpl_id = H5P_DATASET_XFER_DEFAULT;
+    H5AC_noblock_dxpl_id = H5P_DATASET_XFER_DEFAULT;
+    H5AC_ind_dxpl_id = H5P_DATASET_XFER_DEFAULT;
 
     FUNC_LEAVE_NOAPI(SUCCEED)
 #endif /* H5_HAVE_PARALLEL */
@@ -376,7 +383,7 @@ H5AC_term_interface(void)
 {
     int	n = 0;
 
-    FUNC_ENTER_NOAPI_NOINIT
+    FUNC_ENTER_NOAPI_NOINIT_NOERR
 
     if (H5_interface_initialize_g) {
 #ifdef H5_HAVE_PARALLEL

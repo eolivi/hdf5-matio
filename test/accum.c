@@ -470,8 +470,11 @@ test_free(void)
     if(HDmemcmp(expect + 76, rbuf, 116 * sizeof(int32_t)) != 0) TEST_ERROR;
 
     HDfree(wbuf);
+    wbuf = NULL;
     HDfree(rbuf);
+    rbuf = NULL;
     HDfree(expect);
+    expect = NULL;
 
     if(accum_reset() < 0) FAIL_STACK_ERROR;
 
@@ -480,9 +483,12 @@ test_free(void)
     return 0;
 
 error:
-    HDfree(wbuf);
-    HDfree(rbuf);
-    HDfree(expect);
+    if(wbuf)
+        HDfree(wbuf);
+    if(rbuf)
+        HDfree(rbuf);
+    if(expect)
+        HDfree(expect);
 
     return 1;
 } /* test_free */ 
@@ -1646,7 +1652,7 @@ unsigned
 test_random_write(void)
 {
     uint8_t *wbuf, *rbuf;       /* Buffers for reading & writing */
-    unsigned long seed = 0;     /* Random # seed */
+    unsigned seed = 0;          /* Random # seed */
     size_t *off;                /* Offset of buffer segments to write */
     size_t *len;                /* Size of buffer segments to write */
     size_t cur_off;             /* Current offset */
@@ -1667,10 +1673,10 @@ test_random_write(void)
     TESTING("random writes to accumulator");
 
     /* Choose random # seed */
-    seed = (unsigned long)HDtime(NULL);
+    seed = (unsigned)HDtime(NULL);
 #ifdef QAK
-/* seed = (unsigned long)1155438845; */
-HDfprintf(stderr, "Random # seed was: %lu\n", seed);
+/* seed = (unsigned)1155438845; */
+HDfprintf(stderr, "Random # seed was: %u\n", seed);
 #endif /* QAK */
     HDsrandom(seed);
 
@@ -1762,7 +1768,7 @@ error:
     HDfree(off);
     HDfree(len);
 
-    HDfprintf(stderr, "Random # seed was: %lu\n", seed);
+    HDfprintf(stderr, "Random # seed was: %u\n", seed);
     return 1;
 } /* end test_random_write() */
 
@@ -1793,15 +1799,17 @@ accum_printf(void)
         printf("=====================================================\n");
     } else {
         printf("=====================================================\n");
-        printf(" accumulator allocated size == %lu\n", (unsigned long)accum->alloc_size);
-        printf(" accumulated data size      == %lu\n", (unsigned long)accum->size);
-        printf(" accumulator dirty?         == %d\n", accum->dirty);
+        printf(" accumulator allocated size == %zu\n", accum->alloc_size);
+        printf(" accumulated data size      == %zu\n", accum->size);
+        HDfprintf(stdout, " accumulator dirty?         == %t\n", accum->dirty);
         printf("=====================================================\n");
-        printf(" start of accumulated data, loc = %llu\n", accum->loc);
-        if (accum->dirty) printf(" start of dirty region, loc = %llu\n", accum->loc + accum->dirty_off);
-        if (accum->dirty) printf(" end of dirty region,   loc = %llu\n", accum->loc + accum->dirty_off + accum->dirty_len);
-        printf(" end of accumulated data,   loc = %llu\n", accum->loc + accum->size);
-        printf(" end of accumulator allocation,   loc = %llu\n", accum->loc + accum->alloc_size);
+        HDfprintf(stdout, " start of accumulated data, loc = %a\n", accum->loc);
+        if(accum->dirty) {
+            HDfprintf(stdout, " start of dirty region, loc = %a\n", (haddr_t)(accum->loc + accum->dirty_off));
+            HDfprintf(stdout, " end of dirty region,   loc = %a\n", (haddr_t)(accum->loc + accum->dirty_off + accum->dirty_len));
+        } /* end if */
+        HDfprintf(stdout, " end of accumulated data,   loc = %a\n", (haddr_t)(accum->loc + accum->size));
+        HDfprintf(stdout, " end of accumulator allocation,   loc = %a\n", (haddr_t)(accum->loc + accum->alloc_size));
         printf("=====================================================\n");
     }
     printf("\n\n");

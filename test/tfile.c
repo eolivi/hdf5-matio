@@ -498,6 +498,9 @@ test_file_open(void)
     /* Close dataset from first open */
     ret = H5Dclose(did);
     CHECK(ret, FAIL, "H5Dclose");
+
+    ret = H5Pclose(fapl_id);
+    CHECK(ret, FAIL, "H5Pclose");
 }   /* test_file_open() */
 
 /****************************************************************
@@ -1032,6 +1035,9 @@ test_get_file_id(void)
     VERIFY(fid2, FAIL, "H5Iget_file_id");
 
     /* Close objects */
+    ret = H5Pclose(plist);
+    CHECK(ret, FAIL, "H5Pclose");
+
     ret = H5Tclose(datatype_id);
     CHECK(ret, FAIL, "H5Tclose");
 
@@ -1312,6 +1318,11 @@ test_file_perm2(void)
 **      This test checks the free space available in a file in various
 **      situations.
 **
+**  Modifications:
+**	Vailin Choi; July 2012
+**	Remove datasets in reverse order so that all file spaces are shrunk.
+**	(A change due to H5FD_FLMAP_DICHOTOMY.)
+**
 *****************************************************************/
 static void
 test_file_freespace(void)
@@ -1323,6 +1334,7 @@ test_file_freespace(void)
     hid_t    dspace;    /* Dataspace ID */
     hid_t    dset;      /* Dataset ID */
     hid_t    dcpl;      /* Dataset creation property list */
+    int k;		/* Local index variable */
     unsigned u;         /* Local index variable */
     char     name[32];  /* Dataset name */
     herr_t   ret;
@@ -1382,11 +1394,11 @@ test_file_freespace(void)
     /* Check that there is the right amount of free space in the file */
     free_space = H5Fget_freespace(file);
     CHECK(free_space, FAIL, "H5Fget_freespace");
-    VERIFY(free_space, 2008, "H5Fget_freespace");
+    VERIFY(free_space, 2360, "H5Fget_freespace");
 
     /* Delete datasets in file */
-    for(u = 0; u < 10; u++) {
-        sprintf(name, "Dataset %u", u);
+    for(k = 9; k >= 0; k--) {
+        sprintf(name, "Dataset %u", (unsigned)k);
         ret = H5Ldelete(file, name, H5P_DEFAULT);
         CHECK(ret, FAIL, "H5Ldelete");
     } /* end for */
@@ -2704,7 +2716,6 @@ test_libver_macros(void)
     unsigned	major = H5_VERS_MAJOR;
     unsigned	minor = H5_VERS_MINOR;
     unsigned	release = H5_VERS_RELEASE;
-    herr_t	ret;                    /* Return value */
 
     /* Output message about test being performed */
     MESSAGE(5, ("Testing macros for library version comparison\n"));

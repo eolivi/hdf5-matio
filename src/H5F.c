@@ -13,13 +13,19 @@
  * access to either file, you may request a copy from help@hdfgroup.org.     *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/****************/
+/* Module Setup */
+/****************/
+
 #define H5F_PACKAGE		/*suppress error about including H5Fpkg	  */
 
 /* Interface initialization */
 #define H5_INTERFACE_INIT_FUNC	H5F_init_interface
 
 
-/* Packages needed by this file... */
+/***********/
+/* Headers */
+/***********/
 #include "H5private.h"		/* Generic Functions			*/
 #include "H5Aprivate.h"		/* Attributes				*/
 #include "H5ACprivate.h"        /* Metadata cache                       */
@@ -48,6 +54,16 @@
 #endif
 #include "H5FDdirect.h"         /*Linux direct I/O			*/
 
+
+/****************/
+/* Local Macros */
+/****************/
+
+
+/******************/
+/* Local Typedefs */
+/******************/
+
 /* Struct only used by functions H5F_get_objects and H5F_get_objects_cb */
 typedef struct H5F_olist_t {
     H5I_type_t obj_type;        /* Type of object to look for */
@@ -64,7 +80,15 @@ typedef struct H5F_olist_t {
     size_t     max_index;            /* Maximum # of IDs to put into array */
 } H5F_olist_t;
 
-/* PRIVATE PROTOTYPES */
+
+/********************/
+/* Package Typedefs */
+/********************/
+
+
+/********************/
+/* Local Prototypes */
+/********************/
 static herr_t H5F_get_objects(const H5F_t *f, unsigned types, size_t max_index, hid_t *obj_id_list, hbool_t app_ref, size_t *obj_id_count_ptr);
 static int H5F_get_objects_cb(void *obj_ptr, hid_t obj_id, void *key);
 static H5F_t *H5F_new(H5F_file_t *shared, hid_t fcpl_id, hid_t fapl_id,
@@ -74,11 +98,36 @@ static herr_t H5F_build_actual_name(const H5F_t *f, const H5P_genplist_t *fapl,
 static herr_t H5F_dest(H5F_t *f, hid_t dxpl_id, hbool_t flush);
 static herr_t H5F_close(H5F_t *f);
 
+
+/*********************/
+/* Package Variables */
+/*********************/
+
+
+/*****************************/
+/* Library Private Variables */
+/*****************************/
+
+
+/*******************/
+/* Local Variables */
+/*******************/
+
 /* Declare a free list to manage the H5F_t struct */
 H5FL_DEFINE(H5F_t);
 
 /* Declare a free list to manage the H5F_file_t struct */
 H5FL_DEFINE(H5F_file_t);
+
+/* File ID class */
+static const H5I_class_t H5I_FILE_CLS[1] = {{
+    H5I_FILE,			/* ID class value */
+    0,				/* Class flags */
+    64,				/* Minimum hash size for class */
+    0,				/* # of reserved IDs for class */
+    (H5I_free_t)H5F_close	/* Callback routine for closing objects of this class */
+}};
+
 
 
 /*-------------------------------------------------------------------------
@@ -130,7 +179,7 @@ H5F_init_interface(void)
     /*
      * Initialize the atom group for the file IDs.
      */
-    if(H5I_register_type(H5I_FILE, (size_t)H5I_FILEID_HASHSIZE, 0, (H5I_free_t)H5F_close)<H5I_FILE)
+    if(H5I_register_type(H5I_FILE_CLS) < 0)
         HGOTO_ERROR(H5E_FILE, H5E_CANTINIT, FAIL, "unable to initialize interface")
 
 done:
@@ -535,7 +584,6 @@ H5F_get_objects(const H5F_t *f, unsigned types, size_t max_index, hid_t *obj_id_
 {
     size_t obj_id_count=0;      /* Number of open IDs */
     H5F_olist_t olist;          /* Structure to hold search results */
-    htri_t type_exists;         /* Whether objects of a type are open */
     herr_t ret_value = SUCCEED; /* Return value */
 
     FUNC_ENTER_NOAPI_NOINIT
@@ -791,22 +839,25 @@ done:
 htri_t
 H5Fis_hdf5(const char *name)
 {
-    H5FD_t	*file = NULL;           /* Low-level file struct */
-    htri_t	ret_value;              /* Return value */
+    H5FD_t      *file = NULL;           /* Low-level file struct */
+    haddr_t     sig_addr;               /* Address of hdf5 file signature */
+    htri_t      ret_value;              /* Return value */
 
     FUNC_ENTER_API(FAIL)
     H5TRACE1("t", "*s", name);
 
     /* Check args and all the boring stuff. */
     if(!name || !*name)
-	HGOTO_ERROR(H5E_ARGS, H5E_BADRANGE, FAIL, "no file name specified")
+        HGOTO_ERROR(H5E_ARGS, H5E_BADRANGE, FAIL, "no file name specified")
 
     /* Open the file at the virtual file layer */
     if(NULL == (file = H5FD_open(name, H5F_ACC_RDONLY, H5P_FILE_ACCESS_DEFAULT, HADDR_UNDEF)))
-	HGOTO_ERROR(H5E_IO, H5E_CANTINIT, FAIL, "unable to open file")
+        HGOTO_ERROR(H5E_IO, H5E_CANTINIT, FAIL, "unable to open file")
 
     /* The file is an hdf5 file if the hdf5 file signature can be found */
-    ret_value = (HADDR_UNDEF != H5F_locate_signature(file, H5AC_ind_dxpl_id));
+    if(H5F_locate_signature(file, H5AC_ind_dxpl_id, &sig_addr) < 0)
+        HGOTO_ERROR(H5E_FILE, H5E_NOTHDF5, FAIL, "unable to locate file signature")
+    ret_value = (HADDR_UNDEF != sig_addr);
 
 done:
     /* Close the file */
@@ -2319,8 +2370,10 @@ H5F_build_actual_name(const H5F_t *f, const H5P_genplist_t *fapl, const char *na
     } /* end else */
 
 done:
-    if(new_fapl_id > 0 && H5Pclose(new_fapl_id) < 0)
-        HGOTO_ERROR(H5E_FILE, H5E_CANTCLOSEOBJ, FAIL, "can't close duplicated FAPL")
+    /* Close the property list */
+    if(new_fapl_id > 0)
+        if(H5I_dec_app_ref(new_fapl_id) < 0)
+            HDONE_ERROR(H5E_FILE, H5E_CANTCLOSEOBJ, FAIL, "can't close duplicated FAPL")
 
     FUNC_LEAVE_NOAPI(ret_value)
 } /* H5F_build_actual_name() */
@@ -2547,16 +2600,15 @@ done:
  *              david.pitt@bigpond.com
  *              Apr 27, 2004
  *
- * Modifications:
- *
  *-------------------------------------------------------------------------
  */
 herr_t
 H5Fget_filesize(hid_t file_id, hsize_t *size)
 {
-    H5F_t      *file;                   /* File object for file ID */
-    haddr_t    eof;                     /* End of file address */
-    herr_t     ret_value = SUCCEED;     /* Return value */
+    H5F_t       *file;                  /* File object for file ID */
+    haddr_t     eof;                    /* End of file address */
+    haddr_t     base_addr;              /* Base address for the file */
+    herr_t      ret_value = SUCCEED;    /* Return value */
 
     FUNC_ENTER_API(FAIL)
     H5TRACE2("e", "i*h", file_id, size);
@@ -2566,10 +2618,12 @@ H5Fget_filesize(hid_t file_id, hsize_t *size)
         HGOTO_ERROR(H5E_ARGS, H5E_BADVALUE, FAIL, "not a file ID")
 
     /* Go get the actual file size */
-    if(HADDR_UNDEF == (eof = H5FDget_eof(file->shared->lf)))
+    if(HADDR_UNDEF == (eof = H5FD_get_eof(file->shared->lf)))
         HGOTO_ERROR(H5E_FILE, H5E_CANTGET, FAIL, "unable to get file size")
+    base_addr = H5FD_get_base_addr(file->shared->lf);
 
-    *size = (hsize_t)eof;
+    if(size)
+        *size = (hsize_t)(eof + base_addr);     /* Convert relative base address for file to absolute address */
 
 done:
     FUNC_LEAVE_API(ret_value)

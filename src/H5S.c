@@ -13,12 +13,19 @@
  * access to either file, you may request a copy from help@hdfgroup.org.     *
  * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * */
 
+/****************/
+/* Module Setup */
+/****************/
+
 #define H5S_PACKAGE		/*suppress error about including H5Spkg	  */
 
 /* Interface initialization */
 #define H5_INTERFACE_INIT_FUNC	H5S_init_interface
 
 
+/***********/
+/* Headers */
+/***********/
 #include "H5private.h"		/* Generic Functions			*/
 #include "H5Eprivate.h"		/* Error handling		  	*/
 #include "H5Fprivate.h"		/* Files				*/
@@ -28,25 +35,47 @@
 #include "H5Oprivate.h"		/* Object headers		  	*/
 #include "H5Spkg.h"		/* Dataspaces 				*/
 
-/* Local macro definitions */
 
-/* Number of reserved IDs in ID group */
-#define H5S_RESERVED_ATOMS  2
+/****************/
+/* Local Macros */
+/****************/
 
 /* Version of datatype encoding */
 #define H5S_ENCODE_VERSION      0
 
-/* Local static function prototypes */
+
+/******************/
+/* Local Typedefs */
+/******************/
+
+
+/********************/
+/* Local Prototypes */
+/********************/
 static herr_t H5S_set_extent_simple (H5S_t *space, unsigned rank,
     const hsize_t *dims, const hsize_t *max);
 static htri_t H5S_is_simple(const H5S_t *sdim);
 static herr_t H5S_encode(H5S_t *obj, unsigned char *buf, size_t *nalloc);
 static H5S_t *H5S_decode(const unsigned char *buf);
 
+
+/*********************/
+/* Package Variables */
+/*********************/
+
+
+/*****************************/
+/* Library Private Variables */
+/*****************************/
 #ifdef H5_HAVE_PARALLEL
 /* Global vars whose value can be set from environment variable also */
 hbool_t H5S_mpi_opt_types_g = TRUE;
 #endif /* H5_HAVE_PARALLEL */
+
+
+/*******************/
+/* Local Variables */
+/*******************/
 
 /* Declare a free list to manage the H5S_extent_t struct */
 H5FL_DEFINE(H5S_extent_t);
@@ -56,6 +85,16 @@ H5FL_DEFINE(H5S_t);
 
 /* Declare a free list to manage the array's of hsize_t's */
 H5FL_ARR_DEFINE(hsize_t,H5S_MAX_RANK);
+
+/* Dataspace ID class */
+static const H5I_class_t H5I_DATASPACE_CLS[1] = {{
+    H5I_DATASPACE,		/* ID class value */
+    0,				/* Class flags */
+    64,				/* Minimum hash size for class */
+    2,				/* # of reserved IDs for class */
+    (H5I_free_t)H5S_close	/* Callback routine for closing objects of this class */
+}};
+
 
 
 /*--------------------------------------------------------------------------
@@ -78,7 +117,7 @@ H5S_init_interface(void)
     FUNC_ENTER_NOAPI_NOINIT
 
     /* Initialize the atom group for the file IDs */
-    if(H5I_register_type(H5I_DATASPACE, (size_t)H5I_DATASPACEID_HASHSIZE, H5S_RESERVED_ATOMS, (H5I_free_t)H5S_close) < 0)
+    if(H5I_register_type(H5I_DATASPACE_CLS) < 0)
 	HGOTO_ERROR(H5E_DATASPACE, H5E_CANTINIT, FAIL, "unable to initialize interface")
 
 #ifdef H5_HAVE_PARALLEL
@@ -285,7 +324,7 @@ H5S_extent_release(H5S_extent_t *extent)
 
     FUNC_ENTER_NOAPI(FAIL)
 
-    assert(extent);
+    HDassert(extent);
 
     /* Release extent */
     if(extent->type == H5S_SIMPLE) {
@@ -686,7 +725,7 @@ H5S_get_npoints_max(const H5S_t *ds)
     FUNC_ENTER_NOAPI(0)
 
     /* check args */
-    assert(ds);
+    HDassert(ds);
 
     switch (H5S_GET_EXTENT_TYPE(ds)) {
         case H5S_NULL:
@@ -716,7 +755,7 @@ H5S_get_npoints_max(const H5S_t *ds)
 
         case H5S_NO_CLASS:
         default:
-            assert("unknown dataspace class" && 0);
+            HDassert("unknown dataspace class" && 0);
             HGOTO_ERROR(H5E_DATASPACE, H5E_UNSUPPORTED, 0, "internal error (unknown dataspace class)")
     }
 
@@ -1395,7 +1434,7 @@ H5S_create_simple(unsigned rank, const hsize_t dims[/*rank*/],
     FUNC_ENTER_NOAPI(NULL)
 
     /* Check arguments */
-    assert(rank <=H5S_MAX_RANK);
+    HDassert(rank <=H5S_MAX_RANK);
 
     /* Create the space and set the extent */
     if(NULL==(ret_value=H5S_create(H5S_SIMPLE)))
@@ -1673,7 +1712,7 @@ H5S_get_simple_extent_type(const H5S_t *space)
 
     FUNC_ENTER_NOAPI(H5S_NO_CLASS)
 
-    assert(space);
+    HDassert(space);
 
     ret_value=H5S_GET_EXTENT_TYPE(space);
 
