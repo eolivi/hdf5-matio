@@ -428,7 +428,9 @@
 #cmakedefine H5_HAVE_THREADSAFE @H5_HAVE_THREADSAFE@
 
 /* Define if `timezone' is a global variable */
-#cmakedefine H5_HAVE_TIMEZONE @H5_HAVE_TIMEZONE@
+/* do not declare such a variable (bugs on windows 7 OR 10)
+ * http://www.paraview.org/Bug/view.php?id=15534 */
+/*#cmakedefine H5_HAVE_TIMEZONE @H5_HAVE_TIMEZONE@ */
 
 /* Define if the ioctl TIOCGETD is defined */
 #cmakedefine H5_HAVE_TIOCGETD @H5_HAVE_TIOCGETD@
